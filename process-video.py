@@ -33,13 +33,19 @@ def get_keyframes(filename):
     vs.set_output_format([ffms.get_pix_fmt('bgr24')])
     width = vs.get_frame(0).EncodedWidth
     height = vs.get_frame(0).EncodedHeight
+    cached_hist = []
     keyframes = []
     for i in range(len(vs.track.keyframes)-1):
         img1 = keyframe_index(vs, width, height, i)
         img2 = keyframe_index(vs, width, height, i+1)
-        hist1 = calc_histogram(img1)
+        if len(cached_hist) == 0:
+            hist1 = calc_histogram(img1)
+        else:
+            hist1 = cached_hist
         hist2 = calc_histogram(img2)
+        cached_hist = hist2
         correl = correlation(hist1, hist2)
+        print correl
         if correl < SHOT_CORREL_THRESHOLD:
             keyframes += [img1, img2]
     if len(keyframes) == 0:
