@@ -8,6 +8,7 @@ import numpy as np
 import sys
 
 SHOT_CORREL_THRESHOLD = 0.7 # minimum color histogram correlation within shot
+BLANK_THRESHOLD = 50 # number of keypoints needed for image not to be "blank"
 
 
 def keyframe_index(vs, width, height, i):
@@ -54,7 +55,16 @@ def get_keyframes(filename):
 
 
 def discard_blanks(frames):
-    pass
+    # Initiate ORB detector
+    orb = cv2.ORB(nfeatures=1500,edgeThreshold=10)
+    
+    frames_to_discard = []
+    for i in range(len(frames)):
+        kp, des = orb.detectAndCompute(frames[i],None)
+        if len(kp) < BLANK_THRESHOLD: # discard frames with fewer keypoints than threshold
+            frames_to_discard += [i]
+    for i in range(len(frames_to_discard)):
+        frames.pop(frames_to_discard[i] - i)
 
 
 def remove_borders(frame):
