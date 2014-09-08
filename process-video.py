@@ -7,7 +7,7 @@ import ffms
 import numpy as np
 import sys
 
-SHOT_CORREL_THRESHOLD = 0.7 # minimum color histogram correlation within shot
+SHOT_CORRELATION = 0.7 # minimum color histogram correlation within shot
 BLANK_THRESHOLD = 50 # number of keypoints needed for image not to be "blank"
 
 
@@ -47,7 +47,7 @@ def get_keyframes(filename):
         cached_hist = hist2
         correl = correlation(hist1, hist2)
         print correl
-        if correl < SHOT_CORREL_THRESHOLD:
+        if correl < SHOT_CORRELATION:
             keyframes += [img1, img2]
     if len(keyframes) == 0:
         keyframes = [vs.get_frame(vs.track.keyframes[0]).planes[0].reshape((height, width, 3))]
