@@ -69,7 +69,30 @@ def discard_blanks(frames):
 
 
 def remove_borders(frame):
-    pass
+    width = len(frame[0])
+    height = len(frame)
+    color = frame[0][0] # border color inferred from top-left pixel
+    # detect top and bottom borders
+    border_size_y = 0
+    end_border = False
+    for j in range(height / 2):
+        for i in range(width):
+            if (frame[j][i] != color).any() or (frame[-j-1][i] != color).any():
+                end_border = True
+        if end_border == True:
+            break
+        border_size_y += 1
+    # detect left and right borders
+    border_size_x = 0
+    end_border = False
+    for i in range(width / 2):
+        for j in range(height):
+            if (frame[j][i] != color).any() or (frame[j][-i-1] != color).any():
+                end_border = True
+        if end_border == True:
+            break
+        border_size_x += 1
+    return frame[border_size_y:height-border_size_y,border_size_x:width-border_size_x]
 
 
 def normalize_aspect_ratio(frame):
@@ -85,7 +108,7 @@ def contrast_correct(frame):
 
 
 def preprocess(frame):
-    remove_borders(frame)
+    frame = remove_borders(frame)
     normalize_aspect_ratio(frame)
     frame = denoise(frame)
     contrast_correct(frame)
