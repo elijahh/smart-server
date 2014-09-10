@@ -2,6 +2,8 @@
 
 # When user uploads video, process keyframes and extract features
 
+from scipy import ndimage
+
 import cv2
 import ffms
 import numpy as np
@@ -46,7 +48,6 @@ def get_keyframes(filename):
         hist2 = calc_histogram(img2)
         cached_hist = hist2
         correl = correlation(hist1, hist2)
-        print correl
         if correl < SHOT_CORRELATION:
             keyframes += [img1, img2]
     if len(keyframes) == 0:
@@ -76,7 +77,7 @@ def normalize_aspect_ratio(frame):
 
 
 def denoise(frame):
-    pass
+    return ndimage.median_filter(frame, 3)
 
 
 def contrast_correct(frame):
@@ -86,7 +87,7 @@ def contrast_correct(frame):
 def preprocess(frame):
     remove_borders(frame)
     normalize_aspect_ratio(frame)
-    denoise(frame)
+    frame = denoise(frame)
     contrast_correct(frame)
 
 
