@@ -68,6 +68,10 @@ def discard_blanks(frames):
         frames.pop(frames_to_discard[i] - i)
 
 
+def denoise(frame):
+    return ndimage.median_filter(frame, 3)
+
+
 def remove_borders(frame):
     width = len(frame[0])
     height = len(frame)
@@ -99,19 +103,15 @@ def normalize_aspect_ratio(frame):
     pass
 
 
-def denoise(frame):
-    return ndimage.median_filter(frame, 3)
-
-
-def contrast_correct(frame):
+def equalize_histogram(frame):
     pass
 
 
 def preprocess(frame):
+    frame = denoise(frame)
     frame = remove_borders(frame)
     normalize_aspect_ratio(frame)
-    frame = denoise(frame)
-    contrast_correct(frame)
+    equalize_histogram(frame)
 
 
 def extract_feature(frame):
