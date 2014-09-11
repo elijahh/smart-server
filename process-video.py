@@ -2,6 +2,7 @@
 
 # When user uploads video, process keyframes and extract features
 
+from scipy import misc
 from scipy import ndimage
 
 import cv2
@@ -11,6 +12,7 @@ import sys
 
 SHOT_CORRELATION = 0.7 # minimum color histogram correlation within shot
 BLANK_THRESHOLD = 50 # number of keypoints needed for image not to be "blank"
+NORMAL_SIZE = (360, 640) # resize all frames to this size (height, width)
 
 
 def keyframe_index(vs, width, height, i):
@@ -100,17 +102,18 @@ def remove_borders(frame):
 
 
 def normalize_aspect_ratio(frame):
-    pass
+    return misc.imresize(frame, NORMAL_SIZE)
 
 
 def equalize_histogram(frame):
     pass
+    
 
 
 def preprocess(frame):
     frame = denoise(frame)
     frame = remove_borders(frame)
-    normalize_aspect_ratio(frame)
+    frame = normalize_aspect_ratio(frame)
     equalize_histogram(frame)
     return frame
     
