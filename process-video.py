@@ -106,15 +106,16 @@ def normalize_aspect_ratio(frame):
 
 
 def equalize_histogram(frame):
-    pass
-    
+    frame_hsv = cv2.cvtColor(frame, cv2.cv.CV_BGR2HSV)
+    frame_hsv[:,:,2] = cv2.equalizeHist(frame_hsv[:,:,2]) # equalize V channel
+    return cv2.cvtColor(frame_hsv, cv2.cv.CV_HSV2BGR)
 
 
 def preprocess(frame):
     frame = denoise(frame)
     frame = remove_borders(frame)
     frame = normalize_aspect_ratio(frame)
-    equalize_histogram(frame)
+    frame = equalize_histogram(frame)
     return frame
     
 
