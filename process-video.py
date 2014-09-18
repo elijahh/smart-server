@@ -12,7 +12,7 @@ import sys
 
 SHOT_CORRELATION = 0.7 # minimum color histogram correlation within shot
 BLANK_THRESHOLD = 50 # number of keypoints needed for image not to be "blank"
-NORMAL_SIZE = (360, 640) # resize all frames to this size (height, width)
+NORMAL_SIZE = (180, 320) # resize all frames to this size (height, width)
 
 
 def keyframe_index(vs, width, height, i):
@@ -131,63 +131,22 @@ def quantize(frame):
         for i in range(width):
             (h, s, v) = frame[j][i]
             bin_q = 0
-            if s <= 50 or v <= 50: # gray (saturation or brightness < 20%)
+            if (s <= 25 or v <= 25) and not (v >= 200 and s >= 13): # gray (saturation or value lower than 10% -- but if value is higher than 80%, then saturation must be lower than 5%)
                 v_q = int(round(v / 85.0)) # 0 - 3
                 bin_q = 162 + v_q
             else:
                 h_q = h / 10 # 0 - 17
-                s_q = min(s / 85, 2) # 0 - 2
-                v_q = min(v / 85, 2) # 0 - 2
+                s_q = max(0, int(round(s / 85.0) - 1)) # 0 - 2
+                v_q = max(0, int(round(v / 85.0) - 1)) # 0 - 2
                 bin_q = h_q * 9 + s_q * 3 + v_q
             row_quantized += [bin_q]
         frame_quantized += [row_quantized]
     return frame_quantized
 
 
-def get_q_pixel(event, x, y, flags, param):
-    global frame_q
-    global frame_hsv
-    global frame_visual
-    if event == cv2.EVENT_LBUTTONDOWN:
-        print frame_hsv[y][x], " => ", frame_vis[y][x], " (", frame_q[y][x], ")"
-        
-
-def visualize(frame):
-    width = len(frame[0])
-    height = len(frame)
-    frame_visual = []
-    for j in range(height):
-        row_visual = []
-        for i in range(width):
-            bin_q = frame[j][i]
-            if bin_q >= 162:
-                row_visual += [[0, 0, (bin_q - 162) * 85]]
-            else:
-                row_visual += [[bin_q / 9 * 10, ((bin_q % 9) / 3 + 1) * 85, (bin_q % 3 + 1) * 85]]
-        frame_visual += [row_visual]
-    return frame_visual
-
-
 def extract_feature(frame):
-    frame_verify = cv2.cvtColor(frame, cv2.cv.CV_BGR2HSV)
-    frame_verify = cv2.cvtColor(frame_verify, cv2.cv.CV_HSV2BGR)
-    global frame_hsv
     frame_hsv = cv2.cvtColor(frame, cv2.cv.CV_BGR2HSV)
-    global frame_q
     frame_q = quantize(frame_hsv)
-    global frame_vis
-    frame_vis = visualize(frame_q)
-    frame_visual = cv2.cvtColor(np.array(frame_vis, np.uint8), cv2.cv.CV_HSV2BGR)
-    cv2.namedWindow("frame")
-    cv2.setMouseCallback("frame", get_q_pixel)
-    cv2.namedWindow("quantization")
-    cv2.setMouseCallback("quantization", get_q_pixel)
-    while(1):
-        cv2.imshow("frame", frame_verify)
-        cv2.imshow("quantization", frame_visual)
-        if cv2.waitKey(20) & 0xFF == 27: # press Esc
-            break
-    cv2.destroyAllWindows()
     # extract color correlogram from central horizontal and vertical strips => 332-d feature
 
 
