@@ -13,6 +13,8 @@ import sys
 SHOT_CORRELATION = 0.7 # minimum color histogram correlation within shot
 BLANK_THRESHOLD = 50 # number of keypoints needed for image not to be "blank"
 NORMAL_SIZE = (180, 320) # resize all frames to this size (height, width)
+CORNER_MASK_SIZE = 20 # number of pixels to mask off corners to focus on central frame
+NEIGHBOR_DISTANCE = 7 # distance in pixels between neighbors for computing correlogram
 
 
 def keyframe_index(vs, width, height, i):
@@ -144,10 +146,47 @@ def quantize(frame):
     return frame_quantized
 
 
+def get_neighborhood(frame, j, i):
+    width = len(frame[0])
+    height = len(frame)
+    left_edge = max(0, i - NEIGHBOR_DISTANCE)
+    right_edge = min(width, i + NEIGHBOR_DISTANCE)
+    top_edge = max(0, j - NEIGHBOR_DISTANCE)
+    bottom_edge = min(height, j + NEIGHBOR_DISTANCE)
+    return list(frame[top_edge:bottom_edge,left_edge:right_edge].flatten())
+
+
+def calc_autocorrelogram(frame):
+    width = len(frame[0])
+    height = len(frame)
+    num_same_color = np.zeros(166)
+    num_neighbors = np.zeros(166)
+    for j in range(height):
+        for i in range(width):
+            color = frame[j][i]
+            neighbors = get_neighborhood(frame, j, i)
+            num_same_color[color] += neighbors.count(color)
+            num_neighbors[color] += float(len(neighbors))
+    autocorrelogram = []
+    for i in range(166):
+        if num_neighbors[i] != 0.0: # avoid division by zero
+            autocorrelogram += [num_same_color[i] / num_neighbors[i]]
+        else:
+            autocorrelogram += [0.0]
+    return autocorrelogram
+
+
 def extract_feature(frame):
     frame_hsv = cv2.cvtColor(frame, cv2.cv.CV_BGR2HSV)
-    frame_q = quantize(frame_hsv)
-    # extract color correlogram from central horizontal and vertical strips => 332-d feature
+    frame_q = np.array(quantize(frame_hsv))
+    # extract color auto-correlogram from central horizontal and vertical strips => 332-d feature
+    width = len(frame_q[0])
+    height = len(frame_q)
+    horizontal_strip = frame_q[CORNER_MASK_SIZE:height-CORNER_MASK_SIZE,:]
+    vertical_strip = frame_q[:,CORNER_MASK_SIZE:width-CORNER_MASK_SIZE]
+    component1 = calc_autocorrelogram(horizontal_strip)
+    component2 = calc_autocorrelogram(vertical_strip)
+    return component1 + component2
 
 
 if __name__ == "__main__":
@@ -155,4 +194,4 @@ if __name__ == "__main__":
     discard_blanks(frames)
     for frame in frames:
         frame = preprocess(frame)
-        extract_feature(frame)
+        print extract_feature(frame)
