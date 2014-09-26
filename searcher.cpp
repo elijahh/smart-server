@@ -22,14 +22,14 @@ flann::Matrix<float> featuresFromFile(fs::path full_path) {
       std::istringstream iline(line);
       std::istream_iterator<float> itr(iline);
       for (int i = 0; i < 332; ++i, ++itr) {
-	features[i].push_back(*itr);
+        features[i].push_back(*itr);
       }
     }
     int numFeatures = features[0].size();
     flann::Matrix<float> featuresMat(new float[numFeatures*332], numFeatures, 332);
     for (int j = 0; j < numFeatures; ++j) {
       for (int i = 0; i < 332; ++i) {
-	featuresMat[j][i] = features[j][i];
+        featuresMat[j][i] = features[i][j];
       }
     }
     return featuresMat;
@@ -47,6 +47,8 @@ flann::Matrix<int> indexAndSearch(flann::Index<flann::L2<float> > index, flann::
   flann::Matrix<float> dists(new float[query.rows*nn], query.rows, nn);
   index.knnSearch(query, indices, dists, nn, flann::SearchParams());
 
+  delete[] query.ptr();
+  delete[] dists.ptr();
   return indices;
 }
 
@@ -58,10 +60,10 @@ void checkDirectory(flann::Index<flann::L2<float> > index, fs::path full_path) {
   fs::directory_iterator end_iter;
   for (fs::directory_iterator dir_itr(full_path); dir_itr != end_iter; ++dir_itr) {
     if (fs::is_regular_file(dir_itr->status())) {
-      std::ofstream outfile;
-      outfile.open(std::string(std::string("results/") + dir_itr->path().filename().string()).c_str());
-      outfile << indexAndSearch(index, featuresFromFile(dir_itr->path()));
-      outfile.close();
+      flann::Matrix<int> indices = indexAndSearch(index, featuresFromFile(dir_itr->path()));
+      const char* outfile = std::string(std::string("results/") + dir_itr->path().filename().string()).c_str();
+      flann::save_to_file(indices, outfile, "result");
+      delete[] indices.ptr();
     }
   }
 }

@@ -14,7 +14,8 @@ def save_correlograms(video_id, features_to_save):
     starting_index = 0
     # resize dataset to fit new data
     if videoID == None:
-        videoID = g.create_dataset("videoID", (num_features,1), maxshape=(None,1))
+        dt = h5py.special_dtype(vlen=bytes)
+        videoID = g.create_dataset("videoID", (num_features,1), dtype=dt, maxshape=(None,1))
         features = g.create_dataset("features", (num_features,332), maxshape=(None,332))
     else:
         dataset_size = videoID.shape[0]
