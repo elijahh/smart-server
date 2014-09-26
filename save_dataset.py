@@ -53,7 +53,7 @@ def search_dataset(video_id, features_to_save):
     similar_videos = {}
     for row in results:
         for ID in row:
-            similar_videos[d[ID]] = similar_videos.get(d[ID], 0) + 1
+            similar_videos[d[ID][0]] = similar_videos.get(d[ID][0], 0) + 1
     print similar_videos
     f.close()
     v.close()
