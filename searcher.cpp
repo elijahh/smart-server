@@ -10,6 +10,8 @@
 #include <sstream>
 #include <string>
 
+#include <ctime>
+
 namespace fs = boost::filesystem;
 
 
@@ -38,8 +40,8 @@ flann::Matrix<float> featuresFromFile(fs::path full_path) {
 }
 
 
-flann::Matrix<int> indexAndSearch(flann::Index<flann::L2<float> > index, flann::Matrix<float> query) {
-  index.addPoints(query);
+flann::Matrix<int> indexAndSearch(flann::Index<flann::L2<float> > index, flann::Matrix<float> query, bool pointsInIndex) {
+  if (!pointsInIndex) index.addPoints(query);
 
   // nearest-neighbor search with 3 neighbors
   int nn = 3;
@@ -53,23 +55,25 @@ flann::Matrix<int> indexAndSearch(flann::Index<flann::L2<float> > index, flann::
 }
 
 
-void checkDirectory(flann::Index<flann::L2<float> > index, fs::path full_path) {
+void checkDirectory(flann::Index<flann::L2<float> > index, fs::path full_path, std::time_t dataset_accessed) {
   // check directory for files containing features to add,
   // output file with nearest neighbor indices for each feature
   // (indices will then be mapped to video IDs by the python program)
   fs::directory_iterator end_iter;
   for (fs::directory_iterator dir_itr(full_path); dir_itr != end_iter; ++dir_itr) {
     if (fs::is_regular_file(dir_itr->status())) {
-      flann::Matrix<int> indices = indexAndSearch(index, featuresFromFile(dir_itr->path()));
+      bool pointsInIndex = (fs::last_write_time(dir_itr->path()) < dataset_accessed);
+      flann::Matrix<int> indices = indexAndSearch(index, featuresFromFile(dir_itr->path()), pointsInIndex);
       const char* outfile = std::string(std::string("results/") + dir_itr->path().filename().string()).c_str();
       flann::save_to_file(indices, outfile, "result");
       delete[] indices.ptr();
+      fs::remove(dir_itr->path());
     }
   }
 }
 
 
-void handleSearches(flann::Index<flann::L2<float> > index) {
+void handleSearches(flann::Index<flann::L2<float> > index, std::time_t dataset_accessed) {
   fs::path full_path(fs::initial_path<fs::path>());
   full_path = fs::absolute(fs::path("uploads/"), full_path);
   if (!fs::exists(full_path) || !fs::is_directory(full_path)) {
@@ -77,7 +81,7 @@ void handleSearches(flann::Index<flann::L2<float> > index) {
     return;
   }
   while (true) {
-    checkDirectory(index, full_path);
+    checkDirectory(index, full_path, dataset_accessed);
   }
 }
 
@@ -85,8 +89,9 @@ void handleSearches(flann::Index<flann::L2<float> > index) {
 int main(int argc, char** argv) {
   flann::Matrix<float> dataset;
   flann::load_from_file(dataset, "videos.hdf5", "correlograms/features");
+  std::time_t dataset_accessed = std::time(NULL);
   flann::Index<flann::L2<float> > index(dataset, flann::KDTreeIndexParams(4));
   index.buildIndex();
-  handleSearches(index);
+  handleSearches(index, dataset_accessed);
   return 0;
 }
