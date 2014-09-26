@@ -5,6 +5,7 @@ import numpy as np
 
 
 def save_correlograms(video_id, features_to_save):
+    # save to dataset file for persistence
     num_features = len(features_to_save)
     f = h5py.File("videos.hdf5")
     g = f.require_group("correlograms") # data grouped by type of feature
@@ -23,4 +24,12 @@ def save_correlograms(video_id, features_to_save):
         starting_index = dataset_size - 1
     videoID[starting_index:] = video_id
     features[starting_index:] = features_to_save
+    f.close()
+    
+    # save to temp file so that active daemon can add points in memory
+    f = open("uploads/" + video_id, "w")
+    for row in features_to_save:
+        for element in row:
+            f.write(str(element) + " ")
+        f.write("\n")
     f.close()

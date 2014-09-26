@@ -10,6 +10,8 @@ import ffms
 import numpy as np
 import sys
 
+import save-dataset
+
 SHOT_CORRELATION = 0.7 # minimum color histogram correlation within shot
 BLANK_THRESHOLD = 50 # number of keypoints needed for image not to be "blank"
 NORMAL_SIZE = (180, 320) # resize all frames to this size (height, width)
@@ -192,6 +194,8 @@ def extract_feature(frame):
 if __name__ == "__main__":
     frames = get_keyframes(sys.argv[1])
     discard_blanks(frames)
+    features = []
     for frame in frames:
         frame = preprocess(frame)
-        print extract_feature(frame)
+        features += [extract_feature(frame)]
+    save-dataset.save_correlograms(sys.argv[1], features)
