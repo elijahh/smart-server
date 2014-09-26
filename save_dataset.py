@@ -4,6 +4,7 @@ import h5py
 import numpy as np
 
 import os.path
+import shutil
 import time
 
 
@@ -33,12 +34,14 @@ def save_correlograms(video_id, features_to_save):
 
 def search_dataset(video_id, features_to_save):
     # save to temp file so that active daemon can add points and search
-    f = open("uploads/" + video_id, "w")
+    f = open("uploads_" + video_id, "w")
     for row in features_to_save:
         for element in row:
             f.write(str(element) + " ")
         f.write("\n")
     f.close()
+
+    shutil.move("uploads_" + video_id, "uploads/" + video_id)
 
     # searcher daemon does work here
 
