@@ -199,3 +199,4 @@ if __name__ == "__main__":
         frame = preprocess(frame)
         features += [extract_feature(frame)]
     save_dataset.save_correlograms(sys.argv[1], features)
+    save_dataset.search_dataset(sys.argv[1], features)
