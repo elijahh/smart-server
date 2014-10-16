@@ -57,7 +57,7 @@ def get_keyframes(filename):
         if correl < SHOT_CORRELATION:
             keyframes += [img1, img2]
     if len(keyframes) == 0:
-        keyframes = [vs.get_frame(vs.track.keyframes[0]).planes[0].reshape((height, width, 3))]
+        keyframes = [vs.get_frame(vs.track.keyframes[0]).planes[0].reshape((height, width, 3)).copy()]
     return keyframes
 
 
@@ -191,12 +191,13 @@ def extract_feature(frame):
     return component1 + component2
 
 
-if __name__ == "__main__":
-    frames = get_keyframes(sys.argv[1])
+def main(video_id, filename):
+    frames = get_keyframes(filename)
     discard_blanks(frames)
     features = []
     for frame in frames:
         frame = preprocess(frame)
         features += [extract_feature(frame)]
-    save_dataset.save_correlograms(sys.argv[1], features)
-    save_dataset.search_dataset(sys.argv[1], features)
+    save_dataset.save_correlograms(video_id, features)
+    return save_dataset.search_dataset(video_id, features)
+
