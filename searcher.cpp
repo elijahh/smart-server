@@ -11,6 +11,8 @@
 #include <string>
 
 #include <ctime>
+#include <sys/stat.h>
+#include <unistd.h>
 
 namespace fs = boost::filesystem;
 
@@ -40,18 +42,12 @@ flann::Matrix<float> featuresFromFile(fs::path full_path) {
 }
 
 
-flann::Matrix<int> indexAndSearch(flann::Index<flann::L2<float> > index, flann::Matrix<float> query, bool pointsInIndex) {
+void indexAndSearch(flann::Matrix<int> indices, flann::Matrix<float> dists, int nn, flann::Index<flann::L2<float> > index, flann::Matrix<float> query, bool pointsInIndex) {
   if (!pointsInIndex) index.addPoints(query);
 
-  // nearest-neighbor search with 3 neighbors
-  int nn = 3;
-  flann::Matrix<int> indices(new int[query.rows*nn], query.rows, nn);
-  flann::Matrix<float> dists(new float[query.rows*nn], query.rows, nn);
   index.knnSearch(query, indices, dists, nn, flann::SearchParams());
 
   delete[] query.ptr();
-  delete[] dists.ptr();
-  return indices;
 }
 
 
@@ -62,11 +58,24 @@ void checkDirectory(flann::Index<flann::L2<float> > index, fs::path full_path, s
   fs::directory_iterator end_iter;
   for (fs::directory_iterator dir_itr(full_path); dir_itr != end_iter; ++dir_itr) {
     if (fs::is_regular_file(dir_itr->status())) {
+      // prepare search
       bool pointsInIndex = (fs::last_write_time(dir_itr->path()) < dataset_accessed);
-      flann::Matrix<int> indices = indexAndSearch(index, featuresFromFile(dir_itr->path()), pointsInIndex);
-      const char* outfile = std::string(std::string("results/") + dir_itr->path().filename().string()).c_str();
-      flann::save_to_file(indices, outfile, "result");
+      int nn = 3; // 3 neighbors
+      flann::Matrix<float> query = featuresFromFile(dir_itr->path());
+      flann::Matrix<int> indices(new int[query.rows*nn], query.rows, nn);
+      flann::Matrix<float> dists(new float[query.rows*nn], query.rows, nn);
+      indexAndSearch(indices, dists, nn, index, query, pointsInIndex);
+
+      // save results
+      const std::string outfile = std::string("results_") + dir_itr->path().filename().string();
+      flann::save_to_file(indices, outfile, "indices");
+      flann::save_to_file(dists, outfile, "dists");
+      const std::string newfile = std::string("results/") + dir_itr->path().filename().string();
+      fs::rename(fs::path(outfile), fs::path(newfile));
+      chmod(newfile.c_str(), S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+
       delete[] indices.ptr();
+      delete[] dists.ptr();
       fs::remove(dir_itr->path());
     }
   }
@@ -87,6 +96,7 @@ void handleSearches(flann::Index<flann::L2<float> > index, std::time_t dataset_a
 
 
 int main(int argc, char** argv) {
+  chdir("/home/elijahhoule/youtrace/");
   flann::Matrix<float> dataset;
   flann::load_from_file(dataset, "videos.hdf5", "correlograms/features");
   std::time_t dataset_accessed = std::time(NULL);
